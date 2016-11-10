@@ -3,12 +3,12 @@ python: 2.7
 
 env:
 - TOXENV=py27
-- TOXENV=py33
 - TOXENV=py34
+- TOXENV=pypy
 
 install:
 - pip install cython
-- CYTHONIZE=1 python setup.py build
+- CYTHONIZE=1 python setup.py build_ext
 - pip install -U tox
 script: tox
 

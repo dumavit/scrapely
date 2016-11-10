@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import os
+import platform
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
+from distutils.command.build_ext import build_ext
 import numpy as np
 
 
 USE_CYTHON = 'CYTHONIZE' in os.environ
+IS_PYPY = platform.python_implementation() == 'PyPy'
 ext = '.pyx' if USE_CYTHON else '.c'
 extensions = [
     Extension("scrapely._htmlpage",
@@ -18,11 +21,26 @@ extensions = [
 if USE_CYTHON:
     from Cython.Build import cythonize
     extensions = cythonize(extensions)
+if IS_PYPY:
+    extensions = []
+
+
+class BuildExt(build_ext):
+    def build_extension(self, ext):
+        if USE_CYTHON:
+            ext.sources = [cythonize(src) for src in ext.sources]
+        try:
+            return build_ext.build_extension(self, ext)
+        except Exception as e:
+            print(e)
+        print("WARNING: Failed to compile extension modules.")
+        print("fallback pure python implementation.")
 
 
 setup(
     name='scrapely',
     version='0.13.0b1',
+    cmdclass={'build_ext': BuildExt},
     license='BSD',
     description='A pure-python HTML screen-scraping library',
     author='Scrapy project',
@@ -45,7 +63,7 @@ setup(
         'Topic :: Text Processing :: Markup :: HTML',
     ],
     install_requires=['numpy', 'w3lib', 'six'],
-    extras_requires={
+    extras_require={
         'speedup': ['cython']
     },
     ext_modules=extensions,
